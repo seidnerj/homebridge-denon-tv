@@ -25,6 +25,7 @@ class MainZone extends EventEmitter {
         this.buttons = (device.buttons ?? []).filter(button => (button.displayType ?? 0) > 0);
         this.sensors = Array.isArray(device.sensors) ? (device.sensors ?? []).filter(sensor => (sensor.displayType ?? 0) > 0 && (sensor.mode ?? -1) >= 0) : [];
         this.powerControlZone = device.power?.zone || 0;
+        this.powerOnInputTimeout = device.power?.powerOnInputTimeout ?? 12;
         this.volumeControl = device.volume?.displayType || 0;
         this.volumeControlZone = device.volume?.zone || 0;
         this.volumeControlName = device.volume?.name || 'Volume';
@@ -382,15 +383,17 @@ class MainZone extends EventEmitter {
                             if (this.logDebug) this.emit('debug', `AVR is off, deferring input switch to '${activeIdentifier}'`);
 
                             (async () => {
-                                for (let attempt = 0; attempt < 3; attempt++) {
-                                    await new Promise(resolve => setTimeout(resolve, 4000));
+                                const retryIntervalMs = 4000;
+                                const maxAttempts = Math.max(1, Math.ceil((this.powerOnInputTimeout * 1000) / retryIntervalMs));
+                                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                                    await new Promise(resolve => setTimeout(resolve, retryIntervalMs));
 
-                                    // if AVR on 
+                                    // if AVR on
                                     if (this.power) {
 
                                         // if input didn't switch → retry command
                                         if (this.inputIdentifier !== activeIdentifier) {
-                                            if (this.logDebug) this.emit('debug', `Retrying input switch (${attempt + 1}/3)`);
+                                            if (this.logDebug) this.emit('debug', `Retrying input switch (${attempt + 1}/${maxAttempts})`);
                                             await this.denon.send(`${zonePrefix}${reference}`);
                                         } else {
                                             // success

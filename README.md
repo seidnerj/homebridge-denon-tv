@@ -106,6 +106,7 @@
 | `sensors[].level` | Here set `Level` between `0 - 100`, sensor fired on this level. |
 | `power{}` | Power object. |
 | `power.zone` | Here choose which zone the power want control, `0 - Main Zone`, `1 - Zone 2`, `2 - Zone 3`, `3 - Zone 2/3`, `4 - Main Zone + Z2`, `5 - Main Zone + Z3`, `6 - Main Zone + Z2/Z3`, `7 - Master Power`, this also working with power button in RC app. |
+| `power.powerOnInputTimeout` | Seconds to keep retrying an input switch after powering the AVR on from a scene (e.g. a HomeKit scene that turns the receiver on and selects an input at the same moment). Raise (e.g. `60`) if the receiver is slow to become ready on cold start, default is `12`. |
 | `volume{}` | Volume object. |
 | `volume.displayTtype` | Here choose what a additional volume control mode You want to use `0 - None/Disabled`, `1 - Lightbulb`, `2 - Fan`, `3 - TV Speaker`, `4 - TV Speaker / Lightbulb`, `5 - TV Speaker / Fan`.  |
 | `volume.zone` | Here choose which zone the volume/mute want control, `0 - Main Zone`, `1 - Zone 2`, `2 - Zone 3`, `3 - Zone 2/3`, `4 - Main Zone + Z2`, `5 - Main Zone + Z3`, `6 - Main Zone + Z2/Z3`, this also working with hardware

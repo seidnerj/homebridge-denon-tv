@@ -6725,6 +6725,14 @@
                   "condition": {
                     "functionBody": "return model.devices[arrayIndices].zoneControl <= 2;"
                   }
+                },
+                "powerOnInputTimeout": {
+                  "title": "Power On Input Timeout",
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 300,
+                  "default": 12,
+                  "description": "Seconds to keep retrying an input switch after powering the AVR on from a scene. Raise (e.g. 60) if the receiver is slow to become ready on cold start."
                 }
               }
             },
@@ -7277,11 +7285,14 @@
                   "key": "devices[]",
                   "title": "Power",
                   "items": [
-                    "devices[].power.zone"
-                  ],
-                  "condition": {
-                    "functionBody": "return model.devices[arrayIndices].zoneControl <= 2;"
-                  }
+                    {
+                      "key": "devices[].power.zone",
+                      "condition": {
+                        "functionBody": "return model.devices[arrayIndices].zoneControl <= 2;"
+                      }
+                    },
+                    "devices[].power.powerOnInputTimeout"
+                  ]
                 },
                 {
                   "key": "devices[].volume",

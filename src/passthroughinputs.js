@@ -21,6 +21,7 @@ class PassThroughInputs extends EventEmitter {
         this.name = device.name;
         this.zoneControl = device.zoneControl;
         this.inputsDisplayOrder = device.inputs?.displayOrder || 0;
+        this.powerOnInputTimeout = device.power?.powerOnInputTimeout ?? 12;
         this.infoButtonCommand = device.infoButtonCommand || 'MNINF';
         this.logInfo = device.log?.info || false;
         this.logWarn = device.log?.warn || true;
@@ -259,12 +260,14 @@ class PassThroughInputs extends EventEmitter {
 
                         // retry in background
                         (async () => {
-                            for (let attempt = 0; attempt < 3; attempt++) {
-                                await new Promise(resolve => setTimeout(resolve, 4000));
+                            const retryIntervalMs = 4000;
+                            const maxAttempts = Math.max(1, Math.ceil((this.powerOnInputTimeout * 1000) / retryIntervalMs));
+                            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                                await new Promise(resolve => setTimeout(resolve, retryIntervalMs));
 
                                 // retry command if input didn't switch
                                 if (this.inputIdentifier !== activeIdentifier) {
-                                    if (this.logDebug) this.emit('debug', `Retrying input switch (${attempt + 1}/3)`);
+                                    if (this.logDebug) this.emit('debug', `Retrying input switch (${attempt + 1}/${maxAttempts})`);
                                     await this.denon.send(`${zonePrefix}${reference}`);
                                 } else {
                                     // success
