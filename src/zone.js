@@ -40,6 +40,8 @@ class Zone extends EventEmitter {
         this.soundMode = '';
         this.audysseyMode = '';
         this.firstRun = true;
+        this.offlineSince = undefined;
+        this.offlineErrorCount = 0;
 
         denon.on('denonInfo', async (denonInfo) => {
             try {
@@ -50,10 +52,48 @@ class Zone extends EventEmitter {
         }).on('checkState', async () => {
             try {
                 await this.checkState();
+                this.reportReachable();
             } catch (error) {
-                this.emit('error', error);
+                this.reportPollError(error);
             }
         });
+    }
+
+    // A receiver that is switched off drops off the network entirely, so an ordinary overnight
+    // power-off produced one error line per poll - every 5s, 83 of them in a single hour. Report
+    // the transitions instead: once when it stops answering, once when it comes back. Anything
+    // that is not a connection-level failure still surfaces on every occurrence.
+    isOfflineError(error) {
+        const message = `${error?.message ?? error}`;
+        const offlineCodes = ['EHOSTUNREACH', 'EHOSTDOWN', 'ENETUNREACH', 'ECONNREFUSED', 'ECONNRESET', 'ECONNABORTED', 'ETIMEDOUT'];
+
+        return offlineCodes.some((code) => message.includes(code)) || message.includes('timeout of');
+    }
+
+    reportPollError(error) {
+        if (!this.isOfflineError(error)) {
+            this.emit('error', error);
+            return;
+        }
+
+        this.offlineErrorCount++;
+        if (this.offlineSince !== undefined) return;
+
+        this.offlineSince = Date.now();
+        // 'warn' and 'info' are used deliberately - unlike 'success'/'debug' they are not gated by
+        // the configured log level, so both transitions are always visible.
+        this.emit('warn', `Not responding (${error?.message ?? error}), suppressing further connection errors until it answers again`);
+    }
+
+    reportReachable() {
+        if (this.offlineSince === undefined) return;
+
+        const seconds = Math.round((Date.now() - this.offlineSince) / 1000);
+        const suppressed = this.offlineErrorCount;
+
+        this.offlineSince = undefined;
+        this.offlineErrorCount = 0;
+        this.emit('info', `Responding again after ${seconds}s, ${suppressed} connection error(s) suppressed`);
     }
 
     async handleWithLock(fn) {
